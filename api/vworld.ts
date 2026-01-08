@@ -1,12 +1,38 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
+import https from "node:https"
+
+function httpsGet(url: string): Promise<{ status: number; headers: Record<string, any>; body: string }> {
+    return new Promise((resolve, reject) => {
+        const req = https.request(
+            url,
+            {
+                method: "GET",
+                family: 4, // ✅ IPv4 강제
+                headers: { accept: "application/json" },
+            },
+            (resp) => {
+                let data = ""
+                resp.setEncoding("utf8")
+                resp.on("data", (chunk) => (data += chunk))
+                resp.on("end", () =>
+                    resolve({
+                        status: resp.statusCode || 500,
+                        headers: resp.headers as any,
+                        body: data,
+                    }),
+                )
+            },
+        )
+        req.on("error", reject)
+        req.end()
+    })
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const qs = req.url?.split("?")[1] ?? ""
         const params = new URLSearchParams(qs)
 
-        // ✅ (중요) request는 문서 예제들이 대부분 getCoord 입니다.
-        // 대소문자 때문에 서버측에서 예외가 나는 케이스도 있어서 보정
         if (params.get("request")?.toLowerCase() === "getcoord") {
             params.set("request", "getCoord")
         }
@@ -16,23 +42,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const url = `https://api.vworld.kr/req/address?${params.toString()}`
+        const out = await httpsGet(url)
 
-        const upstream = await fetch(url, {
-            headers: { accept: "application/json" },
-        })
-
-        const text = await upstream.text()
-        res.status(upstream.status)
-        res.setHeader("content-type", upstream.headers.get("content-type") || "application/json")
-        res.send(text)
+        res.status(out.status)
+        res.setHeader("content-type", out.headers["content-type"] || "application/json")
+        res.send(out.body)
     } catch (e: any) {
-        // ✅ 여기 응답이 보이면 원인이 바로 잡힙니다.
         res.status(500).json({
             message: e?.message ?? String(e),
             name: e?.name,
             stack: e?.stack,
             node: process.version,
-            hasEnvKey: Boolean(process.env.VWORLD_KEY),
         })
     }
 }
