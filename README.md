@@ -1,73 +1,148 @@
-# React + TypeScript + Vite
+# 🌦 Weather App (Frontend Assignment)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+대한민국 주소 검색을 기반으로 날씨 정보를 제공하는 프론트엔드 웹 애플리케이션입니다.  
+공공데이터포털(기상청 단기예보 API)을 활용하여 **국내 환경에 맞는 정확한 날씨 정보**를 제공하며,  
+Feature Sliced Design(FSD) 아키텍처를 적용해 유지보수성과 확장성을 고려했습니다.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## 1. 프로젝트 실행 방법
 
-## React Compiler
+### 1-1. 실행 환경
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Node.js v18 이상
+- npm (또는 yarn)
 
-## Expanding the ESLint configuration
+### 1-2. 설치 및 실행
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+http://localhost:5173
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## 2. 구현기능에 대한 설명
+
+### 2-1. 현재 위치 날씨 조회
+
+- 앱 최초 진입 시 브라우저 Geolocation API를 사용해 사용자의 현재 위치를 감지합니다.
+- 위·경도 좌표를 기상청 격자 좌표(nx, ny)로 변환하여 날씨 정보를 조회합니다.
+- 다음 정보를 화면에 표시합니다.
+- 현재 기온
+    - 당일 최저 기온
+    - 당일 최고 기온
+
+---
+
+### 2.2 장소 검색 (대한민국 주소)
+
+- 제공된 `korea-districts.json` 데이터를 활용해 시/군/구/동 단위 검색을 지원합니다.
+- 검색 결과 목록에서 사용자가 장소를 선택할 수 있습니다.
+- 선택한 장소의 날씨 정보를 조회하여 화면에 표시합니다.
+- 해당 장소의 날씨 정보가 제공되지 않는 경우  
+  **“해당 장소의 정보가 제공되지 않습니다.”** 문구를 UI에 명시합니다.
+
+---
+
+### 2.3 시간대별 기온 표시
+
+- 기상청 단기예보 API(`getVilageFcst`)를 사용하여 1시간 단위 기온(TMP)을 조회합니다.
+- 오늘 날짜 기준 최대 24시간의 시간대별 기온을 카드 UI 형태로 표시합니다.
+
+---
+
+### 2.4 즐겨찾기 기능
+
+- 검색한 장소를 즐겨찾기에 추가하거나 삭제할 수 있습니다.
+- 즐겨찾기는 최대 6개까지 등록할 수 있습니다.
+- 즐겨찾기 장소는 카드 UI로 표시되며 다음 정보를 포함합니다.
+    - 장소 별칭
+    - 현재 기온
+    - 당일 최저 기온
+    - 당일 최고 기온
+- 즐겨찾기 카드 클릭 시 해당 장소의 상세 페이지로 이동합니다.
+- 즐겨찾기 장소의 별칭을 수정할 수 있습니다.
+
+---
+
+### 2.5 상세 페이지
+
+- 선택한 장소의 상세 날씨 정보를 제공합니다.
+- 다음 정보를 화면에 표시합니다.
+    - 현재 기온
+    - 당일 최저 기온
+    - 당일 최고 기온
+    - 시간대별 기온 (24시간)
+
+---
+
+## 3. 기술적 의사결정 및 이유
+
+### 3.1 Feature Sliced Design(FSD) 아키텍처
+
+- 기능(Feature) 단위로 코드를 분리하여 비즈니스 로직과 UI 책임을 명확히 구분했습니다.
+- 기능 단위의 독립성이 높아 유지보수 및 확장에 유리합니다.
+- Page 계층은 UI 조립 역할만 담당하고, 실제 로직은 Feature 계층에 위치하도록 구성했습니다.
+
+---
+
+### 3.2 공공데이터포털(기상청 API) 선택
+
+- OpenWeatherMap 대비 대한민국 주소 및 날씨 정확도가 높아 국내 서비스에 적합하다고 판단했습니다.
+- 읍·면·동 단위까지 커버 가능한 격자(nx, ny) 기반 예보를 제공할 수 있습니다.
+- 단기예보 API를 활용해 시간대별 기온 정보를 안정적으로 제공할 수 있습니다.
+
+---
+
+### 3.3 TanStack Query 사용
+
+- 서버 상태(날씨 정보, 즐겨찾기 목록)를 Query 캐시로 관리했습니다.
+- 데이터 변경 시 자동 리렌더링이 이루어져 UI와 상태의 일관성을 유지합니다.
+- 즐겨찾기 데이터는 localStorage와 Query 캐시를 함께 사용하여 즉각적인 UI 반영을 구현했습니다.
+
+---
+
+### 3.4 CORS 및 보안 고려
+
+- VWorld 지오코더 API의 CORS 제약으로 인해 프록시 구조를 통해 API를 호출하도록 설계했습니다.
+- API 키는 환경 변수를 통해 관리하여 노출을 방지했습니다.
+
+---
+
+## 4. 사용한 기술 스택
+
+### Frontend
+
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+
+### State / Data Fetching
+
+- TanStack Query (React Query)
+
+### Architecture
+
+- Feature Sliced Design (FSD)
+
+### External APIs
+
+- 기상청 단기예보 API (공공데이터포털)
+- VWorld 지오코더 API
+
+---
+
+## 5. 프로젝트 구조
+
+```text
+src/
+ ├─ app/        # 앱 초기화, Provider, Router
+ ├─ pages/      # 페이지 단위
+ ├─ widgets/    # 여러 기능을 조합한 UI
+ ├─ features/   # 핵심 비즈니스 기능
+ ├─ entities/   # 도메인 모델
+ └─ shared/     # 공통 UI 및 유틸
