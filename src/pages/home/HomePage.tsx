@@ -15,7 +15,11 @@ export function HomePage() {
 
             <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                 <CurrentLocationWeather />
-                <SearchPanel />
+                <SearchPanel
+                    onSelect={(v) => {
+                        nav(`/weather/${encodeURIComponent(v.id)}`, { state: v })
+                    }}
+                />
             </div>
 
             <FavoriteGrid />
