@@ -3,6 +3,7 @@ import { formatTemp } from "../../../shared/lib/format"
 import { useCurrentCoords } from "../model/useCurrentCoords"
 import { useWeatherByGrid } from "../../weather-query/model/useWeather"
 import { latLonToGrid } from "../../../shared/lib/kmaGrid.ts"
+import { formatHHMM } from "../../../pages/weather/WeatherDetailPage.tsx"
 
 export function CurrentLocationWeather() {
     const { lat, lon, loading, error } = useCurrentCoords()
@@ -20,16 +21,27 @@ export function CurrentLocationWeather() {
             {q.isError && <div className="text-sm text-red-600">날씨 정보를 불러오지 못했습니다.</div>}
 
             {q.data && (
-                <div className="flex items-end justify-between">
-                    <div>
-                        <div className="text-3xl font-bold">{formatTemp(q.data.currentTemp)}</div>
-                        <div className="text-sm text-gray-600">{q.data.description}</div>
+                <>
+                    <div className="flex items-end justify-between">
+                        <div>
+                            <div className="text-3xl font-bold">{formatTemp(q.data.currentTemp)}</div>
+                            <div className="text-sm text-gray-600">{q.data.description}</div>
+                        </div>
+                        <div className="text-sm text-gray-600">
+                            <div>최저 {formatTemp(q.data.minTemp)}</div>
+                            <div>최고 {formatTemp(q.data.maxTemp)}</div>
+                        </div>
                     </div>
-                    <div className="text-sm text-gray-600">
-                        <div>최저 {formatTemp(q.data.minTemp)}</div>
-                        <div>최고 {formatTemp(q.data.maxTemp)}</div>
+                    <div className="text-base font-semibold">시간대별 기온 (24h)</div>
+                    <div className="grid grid-cols-3 gap-2 sm:grid-cols-6">
+                        {q.data.hourly.map((h) => (
+                            <div key={h.time} className="rounded-xl border p-2 text-center">
+                                <div className="text-xs text-gray-500">{formatHHMM(h.time)}</div>
+                                <div className="font-semibold">{formatTemp(h.temp)}</div>
+                            </div>
+                        ))}
                     </div>
-                </div>
+                </>
             )}
         </Card>
     )
