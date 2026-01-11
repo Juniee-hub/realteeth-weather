@@ -1,58 +1,54 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node"
-import https from "node:https"
-
-function httpsGet(url: string): Promise<{ status: number; headers: Record<string, any>; body: string }> {
-    return new Promise((resolve, reject) => {
-        const req = https.request(
-            url,
-            {
-                method: "GET",
-                family: 4, // ✅ IPv4 강제
-                headers: { accept: "application/json" },
-            },
-            (resp) => {
-                let data = ""
-                resp.setEncoding("utf8")
-                resp.on("data", (chunk) => (data += chunk))
-                resp.on("end", () =>
-                    resolve({
-                        status: resp.statusCode || 500,
-                        headers: resp.headers as any,
-                        body: data,
-                    }),
-                )
-            },
-        )
-        req.on("error", reject)
-        req.end()
-    })
-}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
-        const qs = req.url?.split("?")[1] ?? ""
-        const params = new URLSearchParams(qs)
+        const query = req.query
+        const params = new URLSearchParams()
 
+        // 기존 쿼리 파라미터 복사
+        for (const [key, value] of Object.entries(query)) {
+            if (Array.isArray(value)) {
+                value.forEach((v) => params.append(key, v))
+            } else if (value) {
+                params.append(key, value)
+            }
+        }
+
+        // VWorld API 특이사항 처리: getCoord (대소문자 구분 확인 필요할 수 있음)
         if (params.get("request")?.toLowerCase() === "getcoord") {
             params.set("request", "getCoord")
         }
 
+        // 환경 변수에서 키 설정 (클라이언트에서 안 보냈을 경우)
         if (!params.get("key") && process.env.VWORLD_KEY) {
             params.set("key", process.env.VWORLD_KEY)
         }
 
-        const url = `https://api.vworld.kr/req/address?${params.toString()}`
-        const out = await httpsGet(url)
+        const targetUrl = `https://api.vworld.kr/req/address?${params.toString()}`
 
-        res.status(out.status)
-        res.setHeader("content-type", out.headers["content-type"] || "application/json")
-        res.send(out.body)
+        const response = await fetch(targetUrl, {
+            method: "GET",
+            headers: {
+                Accept: "application/json",
+            },
+        })
+
+        if (!response.ok) {
+            const errorText = await response.text()
+            return res.status(response.status).json({
+                message: "VWorld API error",
+                status: response.status,
+                details: errorText,
+            })
+        }
+
+        const data = await response.json()
+        res.status(200).json(data)
     } catch (e: any) {
         res.status(500).json({
             message: e?.message ?? String(e),
             name: e?.name,
             stack: e?.stack,
-            node: process.version,
         })
     }
 }
