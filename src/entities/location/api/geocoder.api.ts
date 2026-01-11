@@ -5,7 +5,8 @@ const GEO_KEY = import.meta.env.VITE_DATA_GO_KR_GEOCODER_KEY as string
 export async function geocodeKR(address: string): Promise<{ lat: number; lon: number } | null> {
     if (!GEO_KEY) throw new Error("국토교통부 지오코더 서비스키가 필요합니다.")
 
-    const url = "/api/vworld"
+    // const url = "/api/vworld"
+    const url = "https://api.vworld.kr/req/address"
 
     const { data } = await http.get<any>(url, {
         params: {

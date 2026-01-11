@@ -4,13 +4,13 @@ import tailwindcss from "@tailwindcss/vite"
 
 export default defineConfig({
     plugins: [react(), tailwindcss()],
-    server: {
-        proxy: {
-            "/api": {
-                target: "https://api.vworld.kr",
-                changeOrigin: true,
-                rewrite: (path) => path.replace(/^\/api\/vworld/, "/req/address"),
-            },
-        },
-    },
+    // server: {
+    //     proxy: {
+    //         "/api": {
+    //             target: "https://api.vworld.kr",
+    //             changeOrigin: true,
+    //             rewrite: (path) => path.replace(/^\/api\/vworld/, "/req/address"),
+    //         },
+    //     },
+    // },
 })
