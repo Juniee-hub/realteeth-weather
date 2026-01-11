@@ -1,54 +1,70 @@
-import type { VercelRequest, VercelResponse } from "@vercel/node"
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import axios from "axios";
+
+function setCors(req: VercelRequest, res: VercelResponse) {
+    // 운영에서는 * 대신 본인 도메인만 허용 권장
+    // 예: const origin = req.headers.origin ?? "";
+    // if (origin.endsWith("your-domain.vercel.app")) res.setHeader("Access-Control-Allow-Origin", origin);
+
+    res.setHeader("Access-Control-Allow-Origin", "*");
+    res.setHeader("Access-Control-Allow-Methods", "GET,OPTIONS");
+    res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    res.setHeader("Access-Control-Max-Age", "86400");
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+    setCors(req, res);
+
+    // ✅ 프리플라이트 먼저 처리
+    if (req.method === "OPTIONS") {
+        return res.status(204).end();
+    }
+
     try {
-        const query = req.query
-        const params = new URLSearchParams()
+        const query = req.query;
+        const params = new URLSearchParams();
 
-        // 기존 쿼리 파라미터 복사
         for (const [key, value] of Object.entries(query)) {
-            if (Array.isArray(value)) {
-                value.forEach((v) => params.append(key, v))
-            } else if (value) {
-                params.append(key, value)
-            }
+            if (Array.isArray(value)) value.forEach((v) => params.append(key, v));
+            else if (value !== undefined && value !== null && value !== "") params.append(key, String(value));
         }
 
-        // VWorld API 특이사항 처리: getCoord (대소문자 구분 확인 필요할 수 있음)
         if (params.get("request")?.toLowerCase() === "getcoord") {
-            params.set("request", "getCoord")
+            params.set("request", "getCoord");
         }
 
-        // 환경 변수에서 키 설정 (클라이언트에서 안 보냈을 경우)
         if (!params.get("key") && process.env.VWORLD_KEY) {
-            params.set("key", process.env.VWORLD_KEY)
+            params.set("key", process.env.VWORLD_KEY);
         }
 
-        const targetUrl = `https://api.vworld.kr/req/address?${params.toString()}`
+        const targetUrl = `https://api.vworld.kr/req/address?${params.toString()}`;
 
-        const response = await fetch(targetUrl, {
-            method: "GET",
+        const response = await axios.get(targetUrl, {
             headers: {
                 Accept: "application/json",
+                "User-Agent":
+                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             },
-        })
+            timeout: 10000,
+            // 일부 환경에서 TLS/압축 이슈 줄이려면 아래도 가끔 도움 됩니다(필수 아님)
+            // decompress: true,
+            validateStatus: () => true, // VWorld가 4xx 줘도 내용을 그대로 내려보내기 위함
+        });
 
-        if (!response.ok) {
-            const errorText = await response.text()
-            return res.status(response.status).json({
-                message: "VWorld API error",
-                status: response.status,
-                details: errorText,
-            })
-        }
-
-        const data = await response.json()
-        res.status(200).json(data)
+        return res.status(response.status).json(response.data);
     } catch (e: any) {
-        res.status(500).json({
+        console.error("VWorld Proxy Error:", {
+            message: e?.message,
+            code: e?.code,
+            response: e?.response?.data,
+            status: e?.response?.status,
+        });
+
+        return res.status(e?.response?.status || 500).json({
             message: e?.message ?? String(e),
             name: e?.name,
-            stack: e?.stack,
-        })
+            code: e?.code,
+            details: e?.response?.data,
+        });
     }
 }
